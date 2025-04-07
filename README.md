@@ -14,6 +14,10 @@ A digital space for individuals to document and reflect on their daily lives, th
 
 ### 📌 Features
 
+- **Journaling and Blogging**: Users can create private journal entries and public blog posts, with options for text, images, and multimedia. Privacy settings will allow granular control over who can view each post.
+- **Tagging and search**: Advanced tagging and search functionality allows users to easily organize and retrieve past entries based on keywords, emotions, or events. This helps users reflect on past experiences and identify recurring themes.
+- **Community Interaction (Optional)**: Users can choose to connect with others and share selected entries within a controlled community setting. This feature fosters support and connection with like-minded individuals. 
+
 ---
 
 ## 👥 Members
