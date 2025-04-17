@@ -17,11 +17,11 @@ This page provides forms for user login and registration.
 
 The Home Page displays the list of the users written journals.
 
-### ℹ️ Write Page
+### ✏️ Write Page
 
 In this page the user will write his/her thoughts and ideas. The user can also attach an image to his written journal.
 
-### 🛍️ Community Page
+### 👥 Community Page
 
 In this page, it will display the list of communities that the user can join. The user can also create a community and set rules in his community.
 
@@ -37,11 +37,11 @@ Each page developed this week directly reflects key parts of our Use Case Diagra
 * Linked to the User entity in the ERD
 * Handles account creation and login for users
 
-### 🏠 Write Page
+### ✏️ Write Page
 
 * In this page, the user can write a journal.
 
-### 🛍️ Community Page
+### 👥 Community Page
 
 * Reflects the Create Community and Join Community.
 *The user can create or join a community in this page.
