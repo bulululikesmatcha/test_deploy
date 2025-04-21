@@ -3,8 +3,10 @@ document.addEventListener('DOMContentLoaded', function() {
   const mainContent = document.getElementById('mainContent');
   const sidebarToggle = document.getElementById('sidebarToggle');
   const sidebarToggleContainer = document.getElementById('sidebarToggleContainer');
+  const sidebarToggleIcon = sidebarToggle.querySelector('.sidebar-toggle-icon');
   
   sidebarToggle.addEventListener('click', function() {
+    const isSidebarHidden = sidebar.classList.contains('sidebar-hidden');
     sidebar.classList.toggle('sidebar-hidden');
     mainContent.classList.toggle('main-content-expanded');
     
@@ -14,7 +16,31 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
       sidebarToggleContainer.style.left = '250px';
     }
+    
+    // Update toggle icon after toggling the sidebar
+    updateToggleIcon(!isSidebarHidden);
   });
+
+  function updateToggleIcon(isSidebarHidden) {
+    if (isSidebarHidden) {
+      // Hamburger icon
+      sidebarToggleIcon.innerHTML = `
+        <span></span>
+        <span></span>
+        <span></span>
+      `;
+    } else {
+      // X icon
+      sidebarToggleIcon.innerHTML = `
+        <span style="transform: rotate(45deg); top: 6px;"></span>
+        <span style="opacity: 0;"></span>
+        <span style="transform: rotate(-45deg); top: 6px;"></span>
+      `;
+    }
+  }
+  
+  // Set initial toggle icon based on sidebar state
+  updateToggleIcon(sidebar.classList.contains('sidebar-hidden'));
   
   // Dropdown functionality
   const dropdowns = document.querySelectorAll('.dropdown-icon');

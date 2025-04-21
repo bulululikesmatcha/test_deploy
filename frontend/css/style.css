@@ -165,6 +165,17 @@ header .container {
   border-radius: 2px;
 }
 
+/* Fixed Feature Cards with better spacing */
+.features-section .container .row {
+  margin-right: -20px;
+  margin-left: -20px;
+}
+
+.features-section .container .row [class*="col-"] {
+  padding-right: 20px;
+  padding-left: 20px;
+}
+
 .feature-card {
   text-align: center;
   padding: 30px 20px;
@@ -173,6 +184,7 @@ header .container {
   background-color: white;
   box-shadow: var(--card-shadow);
   margin-bottom: 30px;
+  height: 100%; /* Make all cards the same height */
 }
 
 .feature-card:hover {
@@ -240,11 +252,11 @@ header .container {
   box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
 }
 
-/* Footer */
+/* Fixed Footer with reduced height */
 footer.footer {
   background-color: var(--bg-dark);
   color: white;
-  padding: 60px 0 20px;
+  padding: 40px 0 20px; /* Reduced top padding from 60px to 40px */
   margin-top: auto;
 }
 
@@ -354,9 +366,17 @@ footer.footer {
     font-size: 1.8rem;
   }
 
+  footer.footer {
+    padding: 30px 0 15px; /* Reduced padding on mobile */
+  }
+
   footer .container .row > div {
-    margin-bottom: 30px;
+    margin-bottom: 20px; /* Reduced from 30px */
     text-align: center;
+  }
+  
+  .footer h4 {
+    margin-bottom: 15px; /* Reduced margin for headers */
   }
 
   .social-links {

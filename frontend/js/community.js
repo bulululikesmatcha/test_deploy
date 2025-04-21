@@ -3,6 +3,27 @@ document.addEventListener('DOMContentLoaded', function() {
   const sidebar = document.getElementById('sidebar');
   const mainContent = document.getElementById('mainContent');
   const toggleContainer = document.getElementById('sidebarToggleContainer');
+  const sidebarToggle = document.getElementById('sidebarToggle');
+  const sidebarToggleIcon = sidebarToggle.querySelector('.sidebar-toggle-icon');
+  
+  // Function to update the toggle icon between hamburger and X
+  function updateToggleIcon(isSidebarHidden) {
+    if (isSidebarHidden) {
+      // Hamburger icon
+      sidebarToggleIcon.innerHTML = `
+        <span></span>
+        <span></span>
+        <span></span>
+      `;
+    } else {
+      // X icon
+      sidebarToggleIcon.innerHTML = `
+        <span style="transform: rotate(45deg); top: 6px;"></span>
+        <span style="opacity: 0;"></span>
+        <span style="transform: rotate(-45deg); top: 6px;"></span>
+      `;
+    }
+  }
   
   // Initialize sidebar state
   function updateSidebarState() {
@@ -10,11 +31,14 @@ document.addEventListener('DOMContentLoaded', function() {
       sidebar.classList.add('sidebar-hidden');
       mainContent.classList.add('main-content-expanded');
       toggleContainer.style.left = '0';
+      updateToggleIcon(true);
     } else {
       if (!sidebar.classList.contains('sidebar-hidden')) {
         toggleContainer.style.left = '250px';
+        updateToggleIcon(false);
       } else {
         toggleContainer.style.left = '0';
+        updateToggleIcon(true);
       }
     }
   }
@@ -23,14 +47,17 @@ document.addEventListener('DOMContentLoaded', function() {
   updateSidebarState();
   
   // Toggle sidebar when the button is clicked
-  document.getElementById('sidebarToggle').addEventListener('click', function() {
+  sidebarToggle.addEventListener('click', function() {
+    const isSidebarHidden = sidebar.classList.contains('sidebar-hidden');
     sidebar.classList.toggle('sidebar-hidden');
     mainContent.classList.toggle('main-content-expanded');
     
     if (sidebar.classList.contains('sidebar-hidden')) {
       toggleContainer.style.left = '0';
+      updateToggleIcon(true);
     } else {
       toggleContainer.style.left = '250px';
+      updateToggleIcon(false);
     }
   });
   
