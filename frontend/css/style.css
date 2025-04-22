@@ -648,4 +648,9 @@ header .container {
   .footer-info p {
     font-size: 0.8rem;
   }
+}
+
+/* Utility classes for primary gradient */
+.bg-gradient-primary {
+  background: linear-gradient(to right, #4e73df, #36b9cc) !important;
 } 

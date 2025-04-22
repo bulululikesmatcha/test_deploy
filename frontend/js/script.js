@@ -45,26 +45,27 @@ document.addEventListener('DOMContentLoaded', function() {
   // Logout functionality
   document.getElementById('logoutButton').addEventListener('click', function(e) {
     e.preventDefault();
-    const confirmLogout = confirm('Are you sure you want to log out?');
-    if (confirmLogout) {
-      alert('Logging out...');
-      // Redirect to login page or perform other logout actions
-      window.location.href = 'login.html';
-    }
+    // Show the logout modal instead of using confirm
+    const logoutModal = new bootstrap.Modal(document.getElementById('logoutConfirmModal'));
+    logoutModal.show();
+  });
+
+  // Add event listener for the confirm logout button in the modal
+  document.getElementById('confirmLogoutBtn').addEventListener('click', function() {
+    // Hide the modal
+    const logoutModal = bootstrap.Modal.getInstance(document.getElementById('logoutConfirmModal'));
+    logoutModal.hide();
+    
+    // Display logout successful message
+    alert("Logged out successfully!");
+    
+    // Redirect to login page
+    window.location.href = 'login.html';
   });
 });
 
-
-  
-  // Load journals from localStorage
-  loadJournals();
-  
-  // Logout functionality
-  document.getElementById('logoutButton').addEventListener('click', function(e) {
-    e.preventDefault();
-    alert('Logging out...');
-    // Redirect to login page or perform other logout actions
-  });
+// Load journals from localStorage
+loadJournals();
 
 // Function to display journals from localStorage
 function loadJournals() {
