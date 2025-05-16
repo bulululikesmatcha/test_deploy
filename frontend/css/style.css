@@ -653,4 +653,52 @@ header .container {
 /* Utility classes for primary gradient */
 .bg-gradient-primary {
   background: linear-gradient(to right, #4e73df, #36b9cc) !important;
+}
+
+/* User Profile in Sidebar */
+.user-profile {
+  display: flex;
+  align-items: center;
+  padding: 1rem 0;
+  margin-bottom: 1.5rem;
+}
+
+.user-profile i, 
+.user-profile img {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(63, 81, 181, 0.1);
+  color: var(--primary);
+  border-radius: 50%;
+  font-size: 1.5rem;
+  margin-right: 0.8rem;
+  object-fit: cover;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-info span {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.user-info small {
+  color: var(--text-secondary);
+}
+
+/* Media query for sidebar-hidden class to hide user profile text */
+.sidebar-hidden .user-profile i,
+.sidebar-hidden .user-profile img {
+  margin-right: 0;
+}
+
+.sidebar-hidden .user-info {
+  display: none;
 } 

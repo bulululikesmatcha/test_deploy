@@ -5,19 +5,92 @@ document.addEventListener('DOMContentLoaded', function() {
   const sidebarToggleContainer = document.getElementById('sidebarToggleContainer');
   const sidebarToggleIcon = sidebarToggle.querySelector('.sidebar-toggle-icon');
   
+  // API Base URL - using the one defined in config.js
+  const API_ENDPOINT = API_BASE_URL + '/api';
+  
   // Check if user is logged in
   const checkAuth = () => {
+    // Use localStorage for user data
     const userData = localStorage.getItem('userData');
+    const sessionType = localStorage.getItem('currentSessionType');
+    
     if (!userData) {
       // Redirect to login if not logged in
       window.location.href = 'login.html';
       return null;
     }
-    return JSON.parse(userData).user;
+    
+    try {
+      const data = JSON.parse(userData);
+      const user = data.user;
+      
+      // Check for admin viewing user page
+      if (sessionType === 'admin' && (user.isAdmin || user.role === 'admin')) {
+        // Show notice that admin is viewing user page
+        setTimeout(() => {
+          const adminViewingAlert = document.createElement('div');
+          adminViewingAlert.className = 'alert alert-warning alert-dismissible fade show';
+          adminViewingAlert.role = 'alert';
+          adminViewingAlert.innerHTML = `
+            <strong>Admin View:</strong> You are creating/editing content as an administrator.
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          `;
+          document.body.insertBefore(adminViewingAlert, document.body.firstChild);
+        }, 500);
+      }
+      
+      return user;
+    } catch (error) {
+      console.error('Error parsing user data:', error);
+      window.location.href = 'login.html';
+      return null;
+    }
   };
   
   // Initialize by checking authentication
   const currentUser = checkAuth();
+  
+  // Listen for storage events to handle changes from other tabs
+  window.addEventListener('storage', function(event) {
+    if (event.key === 'userData' || event.key === 'currentSessionType') {
+      if (!event.newValue) {
+        // User logged out in another tab
+        window.location.href = 'login.html';
+        return;
+      }
+    }
+  });
+  
+  // Load user profile info
+  loadUserProfile();
+  
+  // Handle logout button
+  const logoutButton = document.getElementById('logoutButton');
+  const confirmLogoutBtn = document.getElementById('confirmLogoutBtn');
+  
+  if (logoutButton) {
+    logoutButton.addEventListener('click', function(e) {
+      e.preventDefault();
+      // Show logout modal using Bootstrap's modal API
+      const logoutModal = new bootstrap.Modal(document.getElementById('logoutConfirmModal'));
+      logoutModal.show();
+    });
+  }
+  
+  if (confirmLogoutBtn) {
+    confirmLogoutBtn.addEventListener('click', function() {
+      // Clear user data
+      localStorage.removeItem('userData');
+      localStorage.removeItem('currentSessionType');
+      localStorage.removeItem('userInfo');
+      localStorage.removeItem('userName');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('sidebarHidden');
+      
+      // Redirect to login page
+      window.location.href = 'index.html';
+    });
+  }
   
   sidebarToggle.addEventListener('click', function() {
     const isSidebarHidden = sidebar.classList.contains('sidebar-hidden');
@@ -30,6 +103,9 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
       sidebarToggleContainer.style.left = '250px';
     }
+    
+    // Save sidebar state to localStorage
+    localStorage.setItem('sidebarHidden', sidebar.classList.contains('sidebar-hidden'));
     
     // Update toggle icon after toggling the sidebar
     updateToggleIcon(!isSidebarHidden);
@@ -53,8 +129,119 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   
-  // Set initial toggle icon based on sidebar state
-  updateToggleIcon(sidebar.classList.contains('sidebar-hidden'));
+  // Initialize sidebar state based on saved preference
+  const sidebarHidden = localStorage.getItem('sidebarHidden') === 'true';
+  if (sidebarHidden) {
+    sidebar.classList.add('sidebar-hidden');
+    mainContent.classList.add('main-content-expanded');
+    sidebarToggleContainer.style.left = '0';
+    updateToggleIcon(true);
+  } else {
+    updateToggleIcon(false);
+  }
+  
+  /**
+   * Loads and displays the user profile information
+   */
+  function loadUserProfile() {
+    const userNameElement = document.getElementById('user-name');
+    const userRoleElement = document.getElementById('user-role');
+    const userProfileSection = document.querySelector('.user-profile');
+    
+    if (!userNameElement || !userRoleElement) return;
+    
+    // Try to get user info from localStorage
+    fetchUserInfo();
+    
+    // Make the profile section clickable - redirect to profile page
+    if (userProfileSection) {
+      userProfileSection.addEventListener('click', function() {
+        window.location.href = 'profile.html';
+      });
+    }
+    
+    /**
+     * Fetches user information and updates the display
+     */
+    function fetchUserInfo() {
+      // Simulate loading delay
+      userNameElement.textContent = 'Loading...';
+      
+      // Get user data from localStorage
+      const userData = localStorage.getItem('userData');
+      if (userData) {
+        try {
+          const userInfo = JSON.parse(userData).user;
+          displayUserInfo(userInfo);
+          fetchProfilePicture(userInfo.id);
+        } catch (error) {
+          console.error('Error parsing user data:', error);
+          displayDefaultUserInfo();
+        }
+      } else {
+        displayDefaultUserInfo();
+      }
+    }
+    
+    /**
+     * Fetches profile picture from API or uses default
+     */
+    async function fetchProfilePicture(userId) {
+      try {
+        const response = await fetch(`${API_ENDPOINT}/profile-pictures/${userId}`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          updateProfileImage(data.imageUrl);
+        } else {
+          // If no profile picture found, keep the icon
+          console.log('No profile picture found');
+        }
+      } catch (error) {
+        console.error('Error fetching profile picture:', error);
+      }
+    }
+    
+    /**
+     * Updates the profile icon with the user's profile picture
+     */
+    function updateProfileImage(imageUrl) {
+      if (!imageUrl) return;
+      
+      const profileIcon = document.querySelector('.user-profile i');
+      if (profileIcon) {
+        // Replace the icon with an image
+        const parent = profileIcon.parentNode;
+        const img = document.createElement('img');
+        img.src = imageUrl;
+        img.alt = 'Profile Picture';
+        img.className = 'profile-image';
+        
+        parent.replaceChild(img, profileIcon);
+      }
+    }
+    
+    /**
+     * Displays default user information when no data is available
+     */
+    function displayDefaultUserInfo() {
+      userNameElement.textContent = 'Guest User';
+      userRoleElement.textContent = 'Member';
+    }
+    
+    /**
+     * Displays user information in the sidebar profile section
+     */
+    function displayUserInfo(user) {
+      if (userNameElement) {
+        userNameElement.textContent = user.name;
+      }
+      
+      if (userRoleElement) {
+        userRoleElement.textContent = user.role || 'Member';
+      }
+    }
+  }
   
   // Dropdown functionality
   const dropdowns = document.querySelectorAll('.dropdown-icon');
@@ -77,13 +264,143 @@ document.addEventListener('DOMContentLoaded', function() {
   const browseImagesBtn = document.getElementById('browseImagesBtn');
   const imagePreviewContainer = document.getElementById('imagePreviewContainer');
   
+  // Emoji functionality
+  const insertEmojiBtn = document.getElementById('insertEmojiBtn');
+  const emojiPickerContainer = document.getElementById('emojiPickerContainer');
+  const journalContent = document.getElementById('journalContent');
+  
+  // Emoji categories and emojis
+  const emojiCategories = [
+    {
+      name: 'Smileys & Emotion',
+      emojis: ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩', '🥳']
+    },
+    {
+      name: 'People & Body',
+      emojis: ['👍', '👎', '👊', '✊', '🤛', '🤜', '🤝', '👏', '🙌', '👐', '🤲', '🙏', '✍️', '💪', '🦾', '🦿', '🦵', '🦶', '👂', '🦻', '👃', '👶', '🧒', '👦', '👧', '🧑', '👱', '👨', '🧔', '👩', '🧓']
+    },
+    {
+      name: 'Animals & Nature',
+      emojis: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🪱', '🐛', '🦋']
+    },
+    {
+      name: 'Food & Drink',
+      emojis: ['🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦', '🥬', '🥒', '🌶️', '🫑', '🌽', '🥕', '🧄', '🧅', '🥔', '🍟', '🍕']
+    },
+    {
+      name: 'Travel & Places',
+      emojis: ['🚗', '🚕', '🚙', '🚌', '🚎', '🏎️', '🚓', '🚑', '🚒', '🚐', '🛻', '🚚', '🚛', '🚜', '🛵', '🏍️', '🛺', '🚲', '🛴', '🚨', '🚥', '🚦', '🛑', '🚧', '⛵', '🛶', '🚤', '🛳️', '⛴️', '🛥️', '🚢']
+    },
+    {
+      name: 'Activities',
+      emojis: ['⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🪃', '🥅', '⛳', '🪁', '🏹', '🎣', '🤿', '🥊', '🥋', '🎽', '🛹', '🛼', '🛷', '⛸️']
+    }
+  ];
+  
+  // Initialize Emoji Picker
+  function initEmojiPicker() {
+    emojiPickerContainer.innerHTML = '';
+    
+    emojiCategories.forEach(category => {
+      const categoryElement = document.createElement('div');
+      categoryElement.className = 'emoji-category';
+      
+      // Create category title
+      const titleElement = document.createElement('div');
+      titleElement.className = 'emoji-category-title';
+      titleElement.textContent = category.name;
+      categoryElement.appendChild(titleElement);
+      
+      // Create emoji grid
+      const emojiGrid = document.createElement('div');
+      emojiGrid.className = 'emoji-grid';
+      
+      // Add emojis to grid
+      category.emojis.forEach(emoji => {
+        const emojiItem = document.createElement('div');
+        emojiItem.className = 'emoji-item';
+        emojiItem.textContent = emoji;
+        emojiItem.addEventListener('click', () => insertEmoji(emoji));
+        emojiGrid.appendChild(emojiItem);
+      });
+      
+      categoryElement.appendChild(emojiGrid);
+      emojiPickerContainer.appendChild(categoryElement);
+    });
+  }
+  
+  // Insert emoji at cursor position
+  function insertEmoji(emoji) {
+    const cursorPos = journalContent.selectionStart;
+    const textBefore = journalContent.value.substring(0, cursorPos);
+    const textAfter = journalContent.value.substring(cursorPos);
+    
+    journalContent.value = textBefore + emoji + textAfter;
+    
+    // Set cursor position after the inserted emoji
+    journalContent.selectionStart = cursorPos + emoji.length;
+    journalContent.selectionEnd = cursorPos + emoji.length;
+    
+    // Focus back on textarea
+    journalContent.focus();
+    
+    // Close emoji picker after selection
+    toggleEmojiPicker(false);
+  }
+  
+  // Toggle emoji picker visibility
+  function toggleEmojiPicker(show) {
+    if (show === undefined) {
+      emojiPickerContainer.classList.toggle('active');
+    } else if (show) {
+      emojiPickerContainer.classList.add('active');
+    } else {
+      emojiPickerContainer.classList.remove('active');
+    }
+  }
+  
+  // Initialize emoji picker
+  initEmojiPicker();
+  
+  // Set emoji picker position relative to emoji button
+  function positionEmojiPicker() {
+    const buttonRect = insertEmojiBtn.getBoundingClientRect();
+    const toolbarRect = document.querySelector('.toolbar').getBoundingClientRect();
+    
+    emojiPickerContainer.style.position = 'absolute';
+    emojiPickerContainer.style.top = `${toolbarRect.bottom + 5}px`;
+    emojiPickerContainer.style.left = `${buttonRect.left}px`;
+    emojiPickerContainer.style.zIndex = '1050';
+  }
+  
+  // Toggle emoji picker on button click
+  insertEmojiBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    positionEmojiPicker();
+    toggleEmojiPicker();
+  });
+  
+  // Close emoji picker when clicking outside
+  document.addEventListener('click', function(e) {
+    if (!emojiPickerContainer.contains(e.target) && e.target !== insertEmojiBtn) {
+      toggleEmojiPicker(false);
+    }
+  });
+  
   // Toggle image upload container visibility
   insertImageBtn.addEventListener('click', function() {
     imageUploadContainer.classList.toggle('hidden');
+    
+    // If container was hidden and now visible, scroll to it
+    if (!imageUploadContainer.classList.contains('hidden')) {
+      imageUploadContainer.scrollIntoView({ behavior: 'smooth' });
+    }
   });
   
   // Trigger file input when browse button is clicked
-  browseImagesBtn.addEventListener('click', function() {
+  browseImagesBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
     imageUpload.click();
   });
   
@@ -112,14 +429,16 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Click to browse files
   imageUploadContainer.addEventListener('click', function(e) {
-    if (e.target !== browseImagesBtn && !e.target.closest('.image-preview-item')) {
+    if (e.target !== browseImagesBtn && !e.target.closest('.image-preview-item') && !e.target.closest('button')) {
       imageUpload.click();
     }
   });
   
   // Handle file selection
   imageUpload.addEventListener('change', function() {
-    handleFiles(this.files);
+    if (this.files && this.files.length > 0) {
+      handleFiles(this.files);
+    }
   });
   
   // Track removed images
@@ -186,7 +505,6 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Text editor toolbar functionality
   const toolbar = document.querySelector('.toolbar');
-  const journalContent = document.getElementById('journalContent');
   
   toolbar.addEventListener('click', function(e) {
     const button = e.target.closest('button');
@@ -263,9 +581,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   
-  // API endpoints
-  const API_BASE_URL = 'http://localhost:5000/api';
-  
   // Check if we're editing an existing journal
   const urlParams = new URLSearchParams(window.location.search);
   const journalId = urlParams.get('id');
@@ -276,7 +591,7 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Editing journal with ID:', journalId);
     
     // Get journal from API
-    fetch(`${API_BASE_URL}/journals/${journalId}?userId=${currentUser.id}`, {
+    fetch(`${API_ENDPOINT}/journals/${journalId}?userId=${currentUser.id}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json'
@@ -306,7 +621,7 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // Fetch existing images for this journal
       try {
-        const imagesResponse = await fetch(`${API_BASE_URL}/journal-images/journal/${journalId}?userId=${currentUser.id}`, {
+        const imagesResponse = await fetch(`${API_ENDPOINT}/journal-images/journal/${journalId}?userId=${currentUser.id}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json'
@@ -387,7 +702,7 @@ document.addEventListener('DOMContentLoaded', function() {
       
       if (currentJournal) {
         // Update existing journal via API
-        journalResponse = await fetch(`${API_BASE_URL}/journals/${currentJournal._id}`, {
+        journalResponse = await fetch(`${API_ENDPOINT}/journals/${currentJournal._id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json'
@@ -410,7 +725,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Journal updated successfully:', updatedJournal);
       } else {
         // Create a new journal via API
-        journalResponse = await fetch(`${API_BASE_URL}/journals`, {
+        journalResponse = await fetch(`${API_ENDPOINT}/journals`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -439,7 +754,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         for (const imageId of removedImageIds) {
           try {
-            const deleteResponse = await fetch(`${API_BASE_URL}/journal-images/${imageId}`, {
+            const deleteResponse = await fetch(`${API_ENDPOINT}/journal-images/${imageId}`, {
               method: 'DELETE',
               headers: {
                 'Content-Type': 'application/json'
@@ -481,7 +796,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (imageId) {
               // Update existing image caption if it has changed
-              imageResponse = await fetch(`${API_BASE_URL}/journal-images/${imageId}`, {
+              imageResponse = await fetch(`${API_ENDPOINT}/journal-images/${imageId}`, {
                 method: 'PUT',
                 headers: {
                   'Content-Type': 'application/json'
@@ -493,7 +808,7 @@ document.addEventListener('DOMContentLoaded', function() {
               });
             } else {
               // Save new image to JournalImages collection
-              imageResponse = await fetch(`${API_BASE_URL}/journal-images`, {
+              imageResponse = await fetch(`${API_ENDPOINT}/journal-images`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json'

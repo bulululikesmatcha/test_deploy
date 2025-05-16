@@ -635,3 +635,79 @@ header {
   background: linear-gradient(to right, #4e73df, #36b9cc);
   border: none;
 }
+
+/* User Profile in Sidebar */
+.user-profile {
+  display: flex;
+  align-items: center;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  background-color: rgba(63, 81, 181, 0.05);
+  border-radius: var(--radius);
+  transition: var(--transition);
+  cursor: pointer;
+}
+
+.user-profile:hover {
+  background-color: rgba(63, 81, 181, 0.1);
+  transform: translateY(-2px);
+}
+
+.user-profile i, 
+.user-profile img {
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(63, 81, 181, 0.1);
+  color: var(--primary);
+  border-radius: 50%;
+  font-size: 1.5rem;
+  margin-right: 1rem;
+  object-fit: cover;
+  box-shadow: var(--shadow-sm);
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-info span {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.user-info small {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.profile-image {
+  width: 60px !important;
+  height: 60px !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  box-shadow: var(--shadow-sm) !important;
+  margin-right: 1rem !important;
+}
+
+/* Media query for sidebar-hidden class to hide user profile text */
+.sidebar-hidden .user-profile {
+  justify-content: center;
+  padding: 1rem 0;
+}
+
+.sidebar-hidden .user-profile i,
+.sidebar-hidden .user-profile img,
+.sidebar-hidden .profile-image {
+  margin-right: 0 !important;
+  width: 45px !important;
+  height: 45px !important;
+}
+
+.sidebar-hidden .user-info {
+  display: none;
+}

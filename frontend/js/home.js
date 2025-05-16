@@ -1,20 +1,96 @@
 document.addEventListener('DOMContentLoaded', function() {
   // Check if user is logged in
   const checkAuth = () => {
+    // Use localStorage for user data
     const userData = localStorage.getItem('userData');
+    const sessionType = localStorage.getItem('currentSessionType');
+    
     if (!userData) {
       // Redirect to login if not logged in
       window.location.href = 'login.html';
       return null;
     }
-    return JSON.parse(userData).user;
+    
+    try {
+      const data = JSON.parse(userData);
+      const user = data.user;
+      
+      // Check for admin viewing user page
+      if (sessionType === 'admin' && (user.isAdmin || user.role === 'admin')) {
+        // Show notice that admin is viewing user page
+        setTimeout(() => {
+          const adminViewingAlert = document.createElement('div');
+          adminViewingAlert.className = 'alert alert-info alert-dismissible fade show';
+          adminViewingAlert.role = 'alert';
+          adminViewingAlert.innerHTML = `
+            <strong>Admin View:</strong> You are viewing the user interface as an administrator.
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          `;
+          document.body.insertBefore(adminViewingAlert, document.body.firstChild);
+        }, 500);
+      }
+      
+      return user;
+    } catch (error) {
+      console.error('Error parsing user data:', error);
+      window.location.href = 'login.html';
+      return null;
+    }
   };
   
   // Initialize by checking authentication
   const currentUser = checkAuth();
   
-  // API endpoints
-  const API_BASE_URL = 'http://localhost:5000/api';
+  // Handle tab cleanup on unload
+  window.addEventListener('beforeunload', function() {
+    // Get the tab ID from localStorage
+    const userData = localStorage.getItem('userData');
+    if (userData) {
+      try {
+        const data = JSON.parse(userData);
+        if (data.tabId) {
+          // Remove tracking info for this tab from localStorage
+          localStorage.removeItem(`activeTab_${data.tabId}`);
+        }
+      } catch (error) {
+        console.error('Error cleaning up tab data:', error);
+      }
+    }
+  });
+  
+  // Listen for storage events to handle changes from other tabs
+  window.addEventListener('storage', function(event) {
+    if (event.key === 'userData' || event.key === 'currentSessionType') {
+      // If userData was changed or removed
+      if (!event.newValue) {
+        // User logged out in another tab
+        window.location.href = 'login.html';
+        return;
+      }
+      
+      const sessionType = localStorage.getItem('currentSessionType');
+      
+      // If session type changed
+      if (sessionType === 'admin') {
+        // If this is a user page but admin session is active
+        console.log('Admin session detected on user page');
+        
+        // Show notification about session change
+        const adminAlert = document.createElement('div');
+        adminAlert.className = 'alert alert-info alert-dismissible fade show';
+        adminAlert.role = 'alert';
+        adminAlert.innerHTML = `
+          <strong>Notice:</strong> Admin session detected. You can continue using the user interface or 
+          <a href="admin-dashboard.html" class="alert-link">go to admin dashboard</a>.
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        document.body.insertBefore(adminAlert, document.body.firstChild);
+      }
+    }
+  });
+  
+  // API Base URL - using the one defined in config.js
+  const API_ENDPOINT = API_BASE_URL + '/api';
   
   // Get references to elements
   const sidebar = document.getElementById('sidebar');
@@ -40,21 +116,64 @@ document.addEventListener('DOMContentLoaded', function() {
   let sortMode = 'newest';
   let journals = []; // Store journals data
   
+  // Load user profile info
+  loadUserProfile();
+  
+  // Handle logout button
+  const logoutButton = document.getElementById('logoutButton');
+  const confirmLogoutBtn = document.getElementById('confirmLogoutBtn');
+  
+  if (logoutButton) {
+    logoutButton.addEventListener('click', function(e) {
+      e.preventDefault();
+      // Show logout modal using Bootstrap's modal API
+      const logoutModal = new bootstrap.Modal(document.getElementById('logoutConfirmModal'));
+      logoutModal.show();
+    });
+  }
+  
+  if (confirmLogoutBtn) {
+    confirmLogoutBtn.addEventListener('click', function() {
+      // Get the tab ID from localStorage
+      const userData = localStorage.getItem('userData');
+      if (userData) {
+        try {
+          const data = JSON.parse(userData);
+          if (data.tabId) {
+            // Remove tracking info for this tab from localStorage
+            localStorage.removeItem(`activeTab_${data.tabId}`);
+          }
+        } catch (error) {
+          console.error('Error cleaning up tab data on logout:', error);
+        }
+      }
+      
+      // Clear user session data
+      localStorage.removeItem('userData');
+      localStorage.removeItem('currentSessionType');
+      localStorage.removeItem('userName');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('sidebarHidden');
+      
+      // Redirect to login page
+      window.location.href = 'index.html';
+    });
+  }
+  
   // Initialize sidebar state and toggle icon
   function updateSidebarState() {
-    if (window.innerWidth <= 768) {
+    const sidebarHidden = localStorage.getItem('sidebarHidden') === 'true';
+    
+    if (sidebarHidden || window.innerWidth <= 768) {
       sidebar.classList.add('sidebar-hidden');
       mainContent.classList.add('main-content-expanded');
       toggleContainer.style.left = '0';
       updateToggleIcon(true);
     } else {
-      if (!sidebar.classList.contains('sidebar-hidden')) {
-        toggleContainer.style.left = sidebar.offsetWidth + 'px';
-        updateToggleIcon(false);
-      } else {
-        toggleContainer.style.left = '0';
-        updateToggleIcon(true);
-      }
+      sidebar.classList.remove('sidebar-hidden');
+      mainContent.classList.remove('main-content-expanded');
+      toggleContainer.style.left = sidebar.offsetWidth + 'px';
+      updateToggleIcon(false);
     }
   }
   
@@ -100,22 +219,138 @@ document.addEventListener('DOMContentLoaded', function() {
     const isSidebarHidden = sidebar.classList.contains('sidebar-hidden');
     sidebar.classList.toggle('sidebar-hidden');
     mainContent.classList.toggle('main-content-expanded');
+    
+    // Update toggle position
     updateTogglePosition();
+    
+    // Update toggle icon
     updateToggleIcon(!isSidebarHidden);
+    
+    // Save sidebar state to localStorage
+    localStorage.setItem('sidebarHidden', sidebar.classList.contains('sidebar-hidden'));
   });
+  
+  /**
+   * Loads and displays the user profile information
+   */
+  function loadUserProfile() {
+    const userNameElement = document.getElementById('user-name');
+    const userRoleElement = document.getElementById('user-role');
+    const userProfileSection = document.querySelector('.user-profile');
+    
+    if (!userNameElement || !userRoleElement) return;
+    
+    // Try to get user info from localStorage
+    fetchUserInfo();
+    
+    // Make the profile section clickable - redirect to profile page
+    if (userProfileSection) {
+      userProfileSection.addEventListener('click', function() {
+        window.location.href = 'profile.html';
+      });
+    }
+    
+    /**
+     * Fetches user information and updates the display
+     */
+    function fetchUserInfo() {
+      // Simulate loading delay
+      userNameElement.textContent = 'Loading...';
+      
+      // Get user data from localStorage
+      const userData = localStorage.getItem('userData');
+      if (userData) {
+        try {
+          const userInfo = JSON.parse(userData).user;
+          displayUserInfo(userInfo);
+          fetchProfilePicture(userInfo.id);
+        } catch (error) {
+          console.error('Error parsing user data:', error);
+          displayDefaultUserInfo();
+        }
+      } else {
+        displayDefaultUserInfo();
+      }
+    }
+    
+    /**
+     * Fetches profile picture from API or uses default
+     */
+    async function fetchProfilePicture(userId) {
+      try {
+        const response = await fetch(`${API_ENDPOINT}/profile-pictures/${userId}`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          updateProfileImage(data.imageUrl);
+        } else {
+          // If no profile picture found, keep the icon
+          console.log('No profile picture found');
+        }
+      } catch (error) {
+        console.error('Error fetching profile picture:', error);
+      }
+    }
+    
+    /**
+     * Updates the profile icon with the user's profile picture
+     */
+    function updateProfileImage(imageUrl) {
+      if (!imageUrl) return;
+      
+      const profileIcon = document.querySelector('.user-profile i');
+      if (profileIcon) {
+        // Replace the icon with an image
+        const parent = profileIcon.parentNode;
+        const img = document.createElement('img');
+        img.src = imageUrl;
+        img.alt = 'Profile Picture';
+        img.className = 'profile-image';
+        
+        parent.replaceChild(img, profileIcon);
+      }
+    }
+    
+    /**
+     * Displays default user information when no data is available
+     */
+    function displayDefaultUserInfo() {
+      userNameElement.textContent = 'Guest User';
+      userRoleElement.textContent = 'Member';
+    }
+    
+    /**
+     * Displays user information in the sidebar profile section
+     */
+    function displayUserInfo(user) {
+      if (userNameElement) {
+        userNameElement.textContent = user.name;
+      }
+      
+      if (userRoleElement) {
+        userRoleElement.textContent = user.role || 'Member';
+      }
+    }
+  }
   
   // View toggle events
   gridViewBtn.addEventListener('click', function() {
     setViewMode('grid');
+    // Save preference to localStorage
+    localStorage.setItem('journalViewMode', 'grid');
   });
   
   listViewBtn.addEventListener('click', function() {
     setViewMode('list');
+    // Save preference to localStorage
+    localStorage.setItem('journalViewMode', 'list');
   });
   
   // Sort event
   sortSelect.addEventListener('change', function() {
     sortMode = this.value;
+    // Save preference to localStorage
+    localStorage.setItem('journalSortMode', sortMode);
     displayJournals();
   });
   
@@ -228,7 +463,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Fetch journals from the API
   async function fetchJournals() {
     try {
-      const response = await fetch(`${API_BASE_URL}/journals/user/${currentUser.id}?userId=${currentUser.id}`, {
+      const response = await fetch(`${API_ENDPOINT}/journals/user/${currentUser.id}?userId=${currentUser.id}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
@@ -411,7 +646,7 @@ document.addEventListener('DOMContentLoaded', function() {
       console.log('Loading journal content and images for journal ID:', journal._id);
       
       // Fetch images for this journal
-      const imagesResponse = await fetch(`${API_BASE_URL}/journal-images/journal/${journal._id}?userId=${currentUser.id}`, {
+      const imagesResponse = await fetch(`${API_ENDPOINT}/journal-images/journal/${journal._id}?userId=${currentUser.id}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
@@ -484,7 +719,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Delete journal using API
   async function deleteJournalEntry(journalId) {
     try {
-      const response = await fetch(`${API_BASE_URL}/journals/${journalId}`, {
+      const response = await fetch(`${API_ENDPOINT}/journals/${journalId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json'
@@ -617,12 +852,33 @@ document.addEventListener('DOMContentLoaded', function() {
   updateSidebarState();
   window.addEventListener('resize', updateSidebarState);
   
+  // Load saved preferences from localStorage
+  function loadSavedPreferences() {
+    // Load view mode preference (grid or list)
+    const savedViewMode = localStorage.getItem('journalViewMode');
+    if (savedViewMode) {
+      setViewMode(savedViewMode);
+    }
+    
+    // Load sort mode preference
+    const savedSortMode = localStorage.getItem('journalSortMode');
+    if (savedSortMode) {
+      sortMode = savedSortMode;
+      sortSelect.value = savedSortMode;
+    }
+  }
+  
   // Add debugging logs
   console.log("Current user:", currentUser);
   
   // Make sure we have a valid user before fetching journals
   if (currentUser && currentUser.id) {
     console.log("Fetching journals for user ID:", currentUser.id);
+    
+    // First load saved preferences
+    loadSavedPreferences();
+    
+    // Then fetch journals
     fetchJournals(); // Fetch journals from API
   } else {
     console.error("User not authenticated or missing ID");
@@ -630,5 +886,3 @@ document.addEventListener('DOMContentLoaded', function() {
     window.location.href = 'login.html';
   }
 });
-
-// Logout functionality removed - now handled by logout.js

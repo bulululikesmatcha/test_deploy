@@ -11,6 +11,15 @@ const isAuthenticated = (req, res, next) => {
     return res.status(401).json({ message: 'User not authenticated' });
   }
   
+  // Special case for admin access
+  if (userId === 'admin') {
+    // Allow admin to proceed without ownership checks
+    req.isAdmin = true;
+    req.userId = 'admin';
+    next();
+    return;
+  }
+  
   // Store userId in req for later use
   req.userId = parseInt(userId);
   next();
@@ -35,7 +44,7 @@ router.post('/', isAuthenticated, async (req, res) => {
       return res.status(404).json({ message: 'Journal not found' });
     }
     
-    if (journal.userId !== req.userId) {
+    if (!req.isAdmin && journal.userId !== req.userId) {
       console.log(`Unauthorized: User ${req.userId} trying to add image to journal by user ${journal.userId}`);
       return res.status(403).json({ message: 'Unauthorized' });
     }
@@ -65,7 +74,17 @@ router.get('/journal/:journalId', isAuthenticated, async (req, res) => {
     const { journalId } = req.params;
     console.log(`Fetching images for journal: ${journalId}, user: ${req.userId}`);
     
-    // Verify the journal exists and belongs to the user
+    // Admin bypass - admins can view any journal's images
+    if (req.isAdmin) {
+      const images = await JournalImages.find({ journalId })
+        .sort({ createdAt: -1 });
+      
+      console.log(`Admin found ${images.length} images for journal: ${journalId}`);
+      res.status(200).json(images);
+      return;
+    }
+    
+    // Regular user flow - verify ownership
     const journal = await Journal.findById(journalId);
     if (!journal) {
       console.log(`Journal not found: ${journalId}`);
@@ -91,6 +110,15 @@ router.get('/journal/:journalId', isAuthenticated, async (req, res) => {
 // Get all images for a specific user
 router.get('/user/:userId', isAuthenticated, async (req, res) => {
   try {
+    // Admin can access any user's images
+    if (req.isAdmin) {
+      const images = await JournalImages.find({ userId: req.params.userId })
+        .sort({ createdAt: -1 });
+      
+      res.status(200).json(images);
+      return;
+    }
+    
     // Ensure the requested userId matches the authenticated user
     if (parseInt(req.params.userId) !== req.userId) {
       return res.status(403).json({ message: 'Unauthorized' });
@@ -112,6 +140,12 @@ router.get('/:id', isAuthenticated, async (req, res) => {
     
     if (!image) {
       return res.status(404).json({ message: 'Image not found' });
+    }
+    
+    // Admin can access any image
+    if (req.isAdmin) {
+      res.status(200).json(image);
+      return;
     }
     
     // Ensure the image belongs to the authenticated user

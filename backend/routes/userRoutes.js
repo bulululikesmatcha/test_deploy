@@ -4,7 +4,9 @@ const User = require('../models/User');
 const Journal = require('../models/Journal');
 const JournalImages = require('../models/JournalImages');
 const Sequence = require('../models/Sequence');
+const { AdminAccount } = require('../models/AdminAccount');
 const bcrypt = require('bcrypt');
+const passport = require('../config/passport');
 
 // Check if user email already exists
 router.get('/check', async (req, res) => {
@@ -23,6 +25,31 @@ router.get('/check', async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
+
+// Google OAuth Routes
+router.get('/google', 
+  passport.authenticate('google', { 
+    scope: ['profile', 'email'],
+    prompt: 'select_account'
+  })
+);
+
+router.get('/google/callback', 
+  passport.authenticate('google', { failureRedirect: '/login' }),
+  (req, res) => {
+    // Successful authentication
+    // Create a user object to return that matches our regular login format
+    const user = {
+      id: req.user._id,
+      name: req.user.name,
+      email: req.user.email,
+      role: req.user.role
+    };
+    
+    // Redirect to frontend with user data
+    res.redirect(`/login-success.html?user=${encodeURIComponent(JSON.stringify(user))}`);
+  }
+);
 
 // Create user
 router.post('/', async (req, res) => {
@@ -146,8 +173,39 @@ router.post('/login', async (req, res) => {
 
   try {
     console.log('Login attempt:', usernameOrEmail);
+    
+    // First check if this is an admin login
+    const admin = await AdminAccount.findOne({ username: usernameOrEmail });
+    
+    if (admin) {
+      console.log('Admin user found, verifying credentials...');
+      // Compare admin passwords
+      const isAdminMatch = await bcrypt.compare(password, admin.password);
+      
+      if (isAdminMatch) {
+        console.log('Admin login successful');
+        return res.status(200).json({ 
+          message: 'Admin login successful',
+          user: {
+            id: admin._id,
+            name: admin.name,
+            email: admin.email,
+            role: 'admin',
+            isAdmin: true,
+            sessionType: 'admin',
+            sessionId: Date.now()
+          }
+        });
+      } else {
+        console.log('Invalid admin credentials');
+        return res.status(400).json({ 
+          message: 'Wrong password. Try again or click Forgot password to reset it', 
+          errorType: 'invalid_password' 
+        });
+      }
+    }
 
-    // Try to find by email or username
+    // If not admin, try regular user login
     const user = await User.findOne({ 
       $or: [
         { email: usernameOrEmail },
@@ -173,19 +231,64 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    console.log('Login successful');
+    console.log('User login successful');
     res.status(200).json({ 
       message: 'Login successful',
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role
+        role: user.role,
+        isAdmin: false,
+        sessionType: 'user',
+        sessionId: Date.now()
       }
     });
   } catch (err) {
     console.error('Server error:', err);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update user password
+router.post('/:userId/update-password', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { currentPassword, newPassword } = req.body;
+    
+    // Validate inputs
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'All fields are required' });
+    }
+    
+    // Find the user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // Special case for admin override (only to be used from admin panel)
+    const isAdminOverride = currentPassword === 'admin-override';
+    
+    if (!isAdminOverride) {
+      // Regular password change - verify current password
+      const isMatch = await bcrypt.compare(currentPassword, user.password);
+      if (!isMatch) {
+        return res.status(401).json({ message: 'Current password is incorrect' });
+      }
+    }
+    
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    
+    // Update user's password
+    user.password = hashedPassword;
+    await user.save();
+    
+    return res.status(200).json({ message: 'Password updated successfully' });
+  } catch (error) {
+    console.error('Error updating password:', error);
+    return res.status(500).json({ message: 'Server error' });
   }
 });
 

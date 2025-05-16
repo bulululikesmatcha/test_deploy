@@ -18,6 +18,15 @@
     <!-- Sidebar -->
     <div id="sidebar" class="sidebar">
       <div class="sidebar-content">
+        <!-- User Profile Section - Matched to admin interface design -->
+        <div class="user-profile">
+          <i class="fas fa-user-circle"></i>
+          <div class="user-info">
+            <span id="user-name">Loading...</span>
+            <small class="text-muted" id="user-role">Member</small>
+          </div>
+        </div>
+        
         <div class="section-title">
           NAVIGATION
           <div class="dropdown-icon up" id="navDropdown"></div>
@@ -106,19 +115,23 @@
                   
                   <div class="form-group mb-3">
                     <div class="toolbar card mb-2 bg-light">
-                      <div class="card-body py-2 d-flex flex-wrap gap-2">
-                       
-                        <button type="button" class="btn btn-primary rounded-pill" id="insertImageBtn">
-                          <i class="fas fa-images me-2"></i>Add Images
-                        </button>
-                      
-                        <div class="vr mx-2"></div>
-                       
-                       
-                       
+                      <div class="card-body py-2">
+                        <div class="d-flex">
+                          <button type="button" class="btn btn-outline-primary rounded-pill me-2" id="insertImageBtn">
+                            <i class="fas fa-images me-2"></i>Add Images
+                          </button>
+                          <button type="button" class="btn btn-outline-primary rounded-pill" id="insertEmojiBtn">
+                            <i class="far fa-smile me-2"></i>Add Emoji
+                          </button>
+                        </div>
                       </div>
                     </div>
                     <textarea id="journalContent" class="form-control" rows="12" placeholder="Write your thoughts here..." required></textarea>
+                    
+                    <!-- Emoji Picker Container -->
+                    <div id="emojiPickerContainer" class="emoji-picker-container">
+                      <!-- Emoji categories will be populated dynamically -->
+                    </div>
                   </div>
                   
                   <!-- Image Upload Container -->
@@ -184,7 +197,7 @@
 
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/config.js"></script>
   <script src="js/write.js"></script>
-  <script src="js/logout.js"></script>
 </body>
 </html>

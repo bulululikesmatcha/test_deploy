@@ -6,6 +6,39 @@ document.addEventListener('DOMContentLoaded', function() {
   const sidebarToggle = document.getElementById('sidebarToggle');
   const sidebarToggleIcon = sidebarToggle.querySelector('.sidebar-toggle-icon');
   
+  // API Base URL - using the one defined in config.js
+  const API_ENDPOINT = API_BASE_URL + '/api';
+  
+  // Load user profile information
+  loadUserProfile();
+  
+  // Handle logout button
+  const logoutButton = document.getElementById('logoutButton');
+  const confirmLogoutBtn = document.getElementById('confirmLogoutBtn');
+  
+  if (logoutButton) {
+    logoutButton.addEventListener('click', function(e) {
+      e.preventDefault();
+      // Show logout modal using Bootstrap's modal API
+      const logoutModal = new bootstrap.Modal(document.getElementById('logoutConfirmModal'));
+      logoutModal.show();
+    });
+  }
+  
+  if (confirmLogoutBtn) {
+    confirmLogoutBtn.addEventListener('click', function() {
+      // Clear user session data
+      localStorage.removeItem('userInfo');
+      localStorage.removeItem('userName');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('userData');
+      localStorage.removeItem('sidebarHidden');
+      
+      // Redirect to login page
+      window.location.href = 'index.html';
+    });
+  }
+  
   // Function to update the toggle icon between hamburger and X
   function updateToggleIcon(isSidebarHidden) {
     if (isSidebarHidden) {
@@ -27,19 +60,18 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Initialize sidebar state
   function updateSidebarState() {
-    if (window.innerWidth <= 768) {
+    const sidebarHidden = localStorage.getItem('sidebarHidden') === 'true';
+    
+    if (sidebarHidden || window.innerWidth <= 768) {
       sidebar.classList.add('sidebar-hidden');
       mainContent.classList.add('main-content-expanded');
       toggleContainer.style.left = '0';
       updateToggleIcon(true);
     } else {
-      if (!sidebar.classList.contains('sidebar-hidden')) {
-        toggleContainer.style.left = '250px';
-        updateToggleIcon(false);
-      } else {
-        toggleContainer.style.left = '0';
-        updateToggleIcon(true);
-      }
+      sidebar.classList.remove('sidebar-hidden');
+      mainContent.classList.remove('main-content-expanded');
+      toggleContainer.style.left = '250px';
+      updateToggleIcon(false);
     }
   }
   
@@ -59,6 +91,9 @@ document.addEventListener('DOMContentLoaded', function() {
       toggleContainer.style.left = '250px';
       updateToggleIcon(false);
     }
+    
+    // Save sidebar state to localStorage
+    localStorage.setItem('sidebarHidden', sidebar.classList.contains('sidebar-hidden'));
   });
   
   // Handle window resize events
@@ -75,6 +110,109 @@ document.addEventListener('DOMContentLoaded', function() {
       section.style.display = section.style.display === 'none' ? 'block' : 'none';
     });
   });
+  
+  /**
+   * Loads and displays the user profile information
+   */
+  function loadUserProfile() {
+    const userNameElement = document.getElementById('user-name');
+    const userRoleElement = document.getElementById('user-role');
+    const userProfileSection = document.querySelector('.user-profile');
+    
+    if (!userNameElement || !userRoleElement) return;
+    
+    // Try to get user info from localStorage
+    fetchUserInfo();
+    
+    // Make the profile section clickable - redirect to profile page
+    if (userProfileSection) {
+      userProfileSection.addEventListener('click', function() {
+        window.location.href = 'profile.html';
+      });
+    }
+    
+    /**
+     * Fetches user information and updates the display
+     */
+    function fetchUserInfo() {
+      // Simulate loading delay
+      userNameElement.textContent = 'Loading...';
+      
+      // Get user data from localStorage
+      const userData = localStorage.getItem('userData');
+      if (userData) {
+        try {
+          const userInfo = JSON.parse(userData).user;
+          displayUserInfo(userInfo);
+          fetchProfilePicture(userInfo.id);
+        } catch (error) {
+          console.error('Error parsing user data:', error);
+          displayDefaultUserInfo();
+        }
+      } else {
+        displayDefaultUserInfo();
+      }
+    }
+    
+    /**
+     * Fetches profile picture from API or uses default
+     */
+    async function fetchProfilePicture(userId) {
+      try {
+        const response = await fetch(`${API_ENDPOINT}/profile-pictures/${userId}`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          updateProfileImage(data.imageUrl);
+        } else {
+          // If no profile picture found, keep the icon
+          console.log('No profile picture found');
+        }
+      } catch (error) {
+        console.error('Error fetching profile picture:', error);
+      }
+    }
+    
+    /**
+     * Updates the profile icon with the user's profile picture
+     */
+    function updateProfileImage(imageUrl) {
+      if (!imageUrl) return;
+      
+      const profileIcon = document.querySelector('.user-profile i');
+      if (profileIcon) {
+        // Replace the icon with an image
+        const parent = profileIcon.parentNode;
+        const img = document.createElement('img');
+        img.src = imageUrl;
+        img.alt = 'Profile Picture';
+        img.className = 'profile-image';
+        
+        parent.replaceChild(img, profileIcon);
+      }
+    }
+    
+    /**
+     * Displays default user information when no data is available
+     */
+    function displayDefaultUserInfo() {
+      userNameElement.textContent = 'Guest User';
+      userRoleElement.textContent = 'Member';
+    }
+    
+    /**
+     * Displays user information in the sidebar profile section
+     */
+    function displayUserInfo(user) {
+      if (userNameElement) {
+        userNameElement.textContent = user.name;
+      }
+      
+      if (userRoleElement) {
+        userRoleElement.textContent = user.role || 'Member';
+      }
+    }
+  }
 });
 
 // Simulate community data (this would typically come from an API or a database)

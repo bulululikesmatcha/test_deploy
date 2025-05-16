@@ -1,0 +1,25 @@
+{
+  "name": "echoes-of-today",
+  "version": "1.0.0",
+  "description": "A digital space for individuals to document and reflect on their daily lives",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "nodemon backend/server.js",
+    "install-all": "npm install && cd backend && npm install"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "keywords": [
+    "journal",
+    "blog",
+    "diary",
+    "reflection"
+  ],
+  "author": "BSIT Team",
+  "license": "MIT",
+  "dependencies": {
+    "mongodb": "^6.16.0"
+  }
+}

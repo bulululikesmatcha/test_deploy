@@ -429,31 +429,19 @@ header {
 /* Toolbar styling */
 .toolbar {
   display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  padding: 8px;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0;
+  background-color: transparent;
   border-radius: 8px;
-  background-color: #f8f9fa;
   margin-bottom: 10px;
+  position: relative;
 }
 
 .toolbar button {
-  background: none;
-  border: 1px solid #dee2e6;
-  border-radius: 4px;
-  width: 32px;
-  height: 32px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  color: #495057;
-  transition: all 0.2s ease;
-}
-
-.toolbar button:hover {
-  background-color: #e9ecef;
-  color: var(--primary);
 }
 
 /* Content area */
@@ -553,4 +541,179 @@ header {
 #logoutConfirmModal .btn-primary {
   background: linear-gradient(to right, #4e73df, #36b9cc);
   border: none;
+}
+
+/* Add button specific styles */
+#insertImageBtn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-right: 0;
+  min-width: 140px;
+  color: var(--primary);
+  background-color: rgba(63, 81, 181, 0.05);
+  padding: 0.5rem 1rem;
+  transition: var(--transition);
+  box-shadow: none;
+  border: 1px solid rgba(63, 81, 181, 0.2);
+}
+
+#insertImageBtn i {
+  margin-right: 8px;
+}
+
+#insertEmojiBtn {
+  color: var(--primary);
+  background-color: rgba(63, 81, 181, 0.05);
+  padding: 0.5rem 1rem;
+  transition: var(--transition);
+  box-shadow: none;
+  border: 1px solid rgba(63, 81, 181, 0.2);
+}
+
+#insertEmojiBtn i {
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+/* Emoji Picker Styles */
+.emoji-picker-container {
+  display: none;
+  position: absolute;
+  background: white;
+  border-radius: 8px;
+  box-shadow: var(--shadow-md);
+  z-index: 1000;
+  width: 320px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 15px;
+  margin-top: 10px;
+  border: 1px solid var(--border-color);
+}
+
+.emoji-picker-container.active {
+  display: block;
+  animation: fadeIn 0.3s ease;
+}
+
+.emoji-category {
+  margin-bottom: 15px;
+}
+
+.emoji-category-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 8px;
+}
+
+.emoji-item {
+  cursor: pointer;
+  font-size: 1.5rem;
+  text-align: center;
+  padding: 5px;
+  border-radius: 4px;
+  transition: var(--transition);
+}
+
+.emoji-item:hover {
+  background-color: rgba(63, 81, 181, 0.1);
+  transform: scale(1.2);
+}
+
+/* Responsive Emoji Picker */
+@media (max-width: 576px) {
+  .emoji-picker-container {
+    width: 280px;
+  }
+  
+  .emoji-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+/* User Profile in Sidebar */
+.user-profile {
+  display: flex;
+  align-items: center;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  background-color: rgba(63, 81, 181, 0.05);
+  border-radius: var(--radius);
+  transition: var(--transition);
+  cursor: pointer;
+}
+
+.user-profile:hover {
+  background-color: rgba(63, 81, 181, 0.1);
+  transform: translateY(-2px);
+}
+
+.user-profile i, 
+.user-profile img {
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(63, 81, 181, 0.1);
+  color: var(--primary);
+  border-radius: 50%;
+  font-size: 1.5rem;
+  margin-right: 1rem;
+  object-fit: cover;
+  box-shadow: var(--shadow-sm);
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-info span {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.user-info small {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.profile-image {
+  width: 60px !important;
+  height: 60px !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  box-shadow: var(--shadow-sm) !important;
+  margin-right: 1rem !important;
+}
+
+/* Media query for sidebar-hidden class to hide user profile text */
+.sidebar-hidden .user-profile {
+  justify-content: center;
+  padding: 1rem 0;
+}
+
+.sidebar-hidden .user-profile i,
+.sidebar-hidden .user-profile img,
+.sidebar-hidden .profile-image {
+  margin-right: 0 !important;
+  width: 45px !important;
+  height: 45px !important;
+}
+
+.sidebar-hidden .user-info {
+  display: none;
 }
